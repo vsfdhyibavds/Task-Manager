@@ -1,16 +1,18 @@
 from sqlalchemy.orm import Session
 from datetime import datetime
-from .models import Task, Category, Priority
+from .models import Task, Category, Priority, User
 
 # Task CRUD operations
 def create_task(db: Session, title: str, description: str, due_date: datetime,
-               priority: Priority, category_id: int = None):
+               priority: Priority, category_id: int = None, status: str = None, user_id: int = None):
     task = Task(
         title=title,
         description=description,
         due_date=due_date,
         priority=priority,
-        category_id=category_id
+        category_id=category_id,
+        status=status if status else "pending",
+        user_id=user_id
     )
     db.add(task)
     db.commit()
@@ -20,8 +22,13 @@ def create_task(db: Session, title: str, description: str, due_date: datetime,
 def get_task(db: Session, task_id: int):
     return db.query(Task).filter(Task.id == task_id).first()
 
-def get_tasks(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Task).offset(skip).limit(limit).all()
+def get_tasks(db: Session, skip: int = 0, limit: int = 100, status: str = None, user_id: int = None):
+    query = db.query(Task)
+    if status:
+        query = query.filter(Task.status == status)
+    if user_id:
+        query = query.filter(Task.user_id == user_id)
+    return query.offset(skip).limit(limit).all()
 
 def update_task(db: Session, task_id: int, **kwargs):
     task = db.query(Task).filter(Task.id == task_id).first()
@@ -67,3 +74,33 @@ def delete_category(db: Session, category_id: int):
         db.delete(category)
         db.commit()
     return category
+
+# User CRUD operations
+def create_user(db: Session, username: str, password_hash: str):
+    user = User(username=username, password_hash=password_hash)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+def get_user(db: Session, user_id: int):
+    return db.query(User).filter(User.id == user_id).first()
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(User).filter(User.username == username).first()
+
+def update_user(db: Session, user_id: int, **kwargs):
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        for key, value in kwargs.items():
+            setattr(user, key, value)
+        db.commit()
+        db.refresh(user)
+    return user
+
+def delete_user(db: Session, user_id: int):
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        db.delete(user)
+        db.commit()
+    return user

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from enum import Enum as PyEnum
@@ -9,6 +9,10 @@ class Priority(str, PyEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+class Status(str, PyEnum):
+    PENDING = "pending"
+    COMPLETED = "completed"
 
 class Category(Base):
     __tablename__ = "categories"
@@ -25,7 +29,19 @@ class Task(Base):
     description = Column(String)
     due_date = Column(DateTime)
     priority = Column(Enum(Priority))
+    status = Column(Enum(Status), default=Status.PENDING, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     category_id = Column(Integer, ForeignKey("categories.id"))
+    reminder_sent = Column(Boolean, default=False)
 
     category = relationship("Category", back_populates="tasks")
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User", back_populates="tasks")
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    tasks = relationship("Task", back_populates="user")
