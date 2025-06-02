@@ -8,8 +8,9 @@ def send_reminder_email(email: str, task_title: str):
     # Placeholder for sending email logic
     print(f"Sending reminder email to {email} for task: {task_title}")
 
-def check_due_tasks():
-    db = next(get_db())
+def check_due_tasks(db=None):
+    if db is None:
+        db = next(get_db())
     now = datetime.utcnow()
     overdue_tasks = db.query(Task).filter(
         Task.due_date <= now,

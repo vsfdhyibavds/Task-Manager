@@ -14,8 +14,20 @@ from task_manager.crud import (
 )
 from task_manager.worker import check_due_tasks
 
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
 # Setup in-memory SQLite for testing
 engine = create_engine("sqlite:///:memory:")
+
+# Workaround for SQLite Enum support: convert Enum to String
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    # Enable foreign keys
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 import subprocess
@@ -72,7 +84,7 @@ def test_check_due_tasks(db, capsys):
     # Add email attribute to user for test
     user.email = "user@example.com"
     db.commit()
-    check_due_tasks()
+    check_due_tasks(db)
     captured = capsys.readouterr()
     assert "Sending reminder email" in captured.out
     # Verify reminder_sent is set
